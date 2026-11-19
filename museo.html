@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Museo Virtual de la Computación · Campus UMNG</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- Librerías de Three.js para el visor 3D -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<style>
+:root{
+  --paper:#f4f4f2; --ink:#111; --block:#161616; --green:#4aa84e; --on-green:#0b0b0b; --card:#fff; --line:#d3d3d0; --grey:#e3e3e0;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#101010;--ink:#f2f2f0;--block:#2b2b2b;--card:#1a1a1a;--line:#333;--grey:#262626;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#101010;--ink:#f2f2f0;--block:#2b2b2b;--card:#1a1a1a;--line:#333;--grey:#262626;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;min-height:100vh}
+a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+.mono{font-family:'Space Mono',ui-monospace,Menlo,Consolas,monospace}
+.disp{font-family:'Orbitron','Arial Black',system-ui,sans-serif;font-weight:900;text-transform:uppercase}
+
+header{background:#0b0b0b;color:#fff;position:sticky;top:env(safe-area-inset-top,0px);z-index:20}
+.bar{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:24px;padding:12px 20px}
+.brand{display:flex;align-items:center;gap:12px;font-family:'Space Mono',monospace;font-size:13px;line-height:1.25}
+.brand img{width:36px;height:36px;object-fit:contain}
+.brand b{color:var(--green);font-size:28px;line-height:1}
+nav{margin-left:auto;display:flex;gap:20px;font-family:'Space Mono',monospace;font-size:13px}
+nav a{padding:8px 0;border-bottom:3px solid transparent;color:#d6d6d6}
+nav a.on{color:#fff;border-color:var(--green)}
+.login{background:var(--green);color:var(--on-green);border:0;padding:9px 14px;font-family:'Space Mono',monospace;font-weight:700;font-size:12px}
+.menu{display:none;margin-left:auto;background:none;border:0;color:#fff;font-size:22px}
+
+main{max-width:1120px;margin:0 auto;padding:20px}
+.view{display:none}.view.on{display:block}
+
+/* ---------- Inicio ---------- */
+.poster{position:relative;overflow:hidden;background:var(--paper);border:1px solid var(--line);min-height:640px;padding:56px clamp(20px,5vw,60px)}
+.blk{position:absolute;background:var(--block)}
+.b1{top:0;right:0;width:42%;height:130px}
+.b2{left:0;top:320px;width:90px;height:100px}
+.b3{left:210px;top:300px;width:90px;height:190px}
+.b4{right:90px;bottom:0;width:70px;height:300px}
+.b5{left:0;bottom:0;width:230px;height:110px}
+.b6{right:0;bottom:70px;width:90px;height:90px}
+.wave{position:absolute;pointer-events:none;color:var(--ink)}
+.w1{left:0;top:0;width:60%;height:140px}.w2{right:0;bottom:30px;width:62%;height:300px}
+.wave text{font-family:'Space Mono',monospace;font-weight:700;fill:currentColor;font-size:15px;letter-spacing:1px}
+.pcopy{position:relative;z-index:2;max-width:760px;margin:150px 0 0 auto}
+.ptitle{font-size:clamp(26px,5.2vw,56px);line-height:1.15;margin:0;display:flex;flex-direction:column;align-items:flex-end;text-align:right}
+.ptitle em{font-style:normal;display:block;background:var(--green);color:var(--on-green);padding:6px 18px;margin:8px 0 8px -60px;font-size:clamp(24px,5.4vw,60px)}
+.star{position:absolute;left:clamp(20px,5vw,60px);top:226px;z-index:2;font-size:44px;line-height:1}
+.poster-logo{position:absolute;left:clamp(20px,5vw,60px);top:120px;z-index:2;width:180px;height:180px;object-fit:contain}
+.pintro{position:relative;z-index:2;max-width:430px;margin:36px 0 0 auto;line-height:2}
+.hl{background:var(--green);color:var(--on-green);padding:3px 8px;box-decoration-break:clone;-webkit-box-decoration-break:clone;font-size:19px}
+.cta{position:relative;z-index:2;display:inline-block;margin-top:30px;background:#0b0b0b;color:#fff;padding:14px 22px;font-family:'Space Mono',monospace;font-weight:700;border:0}
+.cta span{color:var(--green)}
+.cta:hover{background:var(--green);color:var(--on-green)}.cta:hover span{color:inherit}
+.ctawrap{display:flex;justify-content:flex-end}
+
+/* ---------- Recorrido ---------- */
+.room{position:relative;overflow:hidden;min-height:480px;background:linear-gradient(#202020 0%,#121212 56%,#3b3b3b 56%,#1b1b1b 100%);display:flex;align-items:flex-end;justify-content:center;color:#fff;border:1px solid #000}
+.frames{position:absolute;top:36px;left:0;right:0;display:flex;justify-content:space-around;padding:0 6%}
+.frames i{display:block;width:70px;height:92px;background:#2c2c2c;border:4px solid #050505}
+.frames i:nth-child(even){height:60px;margin-top:14px;background:var(--green);opacity:.85}
+.roomname{position:absolute;top:22px;left:50%;transform:translateX(-50%);text-align:center;background:#0b0b0b;padding:8px 14px;font-family:'Space Mono',monospace;font-size:13px;white-space:nowrap;border:1px solid rgba(255,255,255,0.15)}
+.roomname b{color:var(--green)}
+.stage{position:relative;display:flex;flex-direction:column;align-items:center;margin-bottom:26px}
+.case{width:240px;height:220px;border:2px solid rgba(255,255,255,.4);background:#ecebe9;display:grid;place-items:center}
+.case img{width:100%;height:100%;object-fit:contain}
+.ped{width:260px;height:90px;background:#050505;border-top:3px solid var(--green)}
+.info{position:absolute;top:-16px;left:50%;transform:translateX(-50%);width:34px;height:34px;background:var(--green);color:var(--on-green);border:0;font-weight:700;font-family:'Space Mono',monospace}
+.tip{position:absolute;top:-104px;left:50%;transform:translateX(-50%);background:#0b0b0b;color:#fff;padding:10px 14px;width:230px;font-family:'Space Mono',monospace;font-size:12px;line-height:1.6;display:none}
+.tip.on{display:block}.tip a{color:var(--green);font-weight:700}
+.arrow{position:absolute;top:50%;width:44px;height:44px;background:#fff;color:#000;border:0;font-size:22px;font-weight:700;transform:translateY(-50%)}
+.arrow.l{left:16px}.arrow.r{right:16px}
+.keys{position:absolute;left:0;bottom:0;background:#0b0b0b;padding:12px 16px;display:grid;grid-template-columns:repeat(2,26px);gap:3px;font-family:'Space Mono',monospace;font-size:11px}
+.keys b{border:1px solid #888;text-align:center;padding:3px 0}
+.keys span{grid-column:1/-1;margin-top:4px;color:#ccc;white-space:nowrap}
+.dots{position:absolute;bottom:14px;right:18px;display:flex;gap:6px}
+.dots i{width:10px;height:10px;background:#fff4}.dots i.on{background:var(--green)}
+
+/* ---------- Detalle ---------- */
+.back{background:#0b0b0b;color:#fff;border:0;padding:8px 14px;font-family:'Space Mono',monospace;font-size:13px;margin-bottom:22px}
+.detail{display:grid;grid-template-columns:1.15fr 0.85fr;gap:40px;align-items:start;max-width:1120px;margin:0 auto}
+.photo-wrap{background:#ecebe9;border:1px solid var(--line);position:relative;padding:14px}
+.photo{width:100%;height:380px;max-height:380px;display:grid;place-items:center;position:relative;overflow:hidden}
+.photo img{width:100%;height:100%;max-width:100%;max-height:360px;object-fit:contain;display:block}
+.thumbs{display:flex;gap:10px;margin-top:12px;overflow-x:auto;padding-bottom:4px;flex-wrap:nowrap;scrollbar-width:thin}
+.thumbs button{flex:0 0 54px;width:54px;height:46px;border:3px solid transparent;background:var(--grey);padding:3px}
+.thumbs button.on{border-color:var(--green)}.thumbs img{width:100%;height:100%;object-fit:contain;display:block}
+.tags{margin:6px 0 30px;position:relative;padding-left:46px}
+.tags::before{content:"✱";position:absolute;left:0;top:-4px;font-size:34px;color:var(--green)}
+.tag{display:table;background:#0b0b0b;color:#fff;font-family:'Space Mono',monospace;font-size:14px;line-height:1.7;padding:6px 14px;margin-bottom:6px}
+.tag.t1{font-size:17px;font-weight:700}
+.desc{line-height:1.85;font-size:17px;margin:0}
+.desc .hl{font-size:17px}
+.desc b{font-weight:700}
+
+/* ---------- Colecciones ---------- */
+.title{font-size:clamp(24px,4vw,38px);margin:6px 0 24px;display:inline-block;background:var(--green);color:var(--on-green);padding:6px 16px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.col{display:block;background:var(--card);border:1px solid var(--line)}
+.col .img{background:#ecebe9;aspect-ratio:1;display:grid;place-items:center}
+.col .img img{width:100%;height:100%;object-fit:contain;display:block}
+.col .lbl{background:#0b0b0b;color:#fff;padding:12px 14px;display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:13px}
+.col:hover .lbl{background:var(--green);color:var(--on-green)}
+.pagetext{max-width:65ch;line-height:2.2;font-size:17px}
+.info-layout{display:grid;grid-template-columns:180px 1fr;gap:40px;align-items:center}
+.info-logo{width:180px;height:auto;object-fit:contain}
+
+/* ---------- Modelo 3D ---------- */
+#canvas3d-container {
+  width: 100%;
+  height: 560px;
+  background: #222;
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+#canvas3d-container.dragging { cursor: grabbing; }
+#canvas3d-container canvas { display:block; width:100%; height:100%; }
+.loading-msg {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  text-align: center;
+  background: rgba(0,0,0,0.8);
+  padding: 12px 20px;
+  border: 1px solid var(--green);
+  z-index: 10;
+}
+.hud3d {
+  position:absolute; left:0; bottom:0; z-index:5; pointer-events:none;
+  background:rgba(11,11,11,.85); color:#ccc; padding:10px 14px;
+  font-family:'Space Mono',monospace; font-size:11px; line-height:1.7;
+}
+.hud3d b { color:#fff; border:1px solid #888; padding:0 5px; margin-right:2px; }
+
+footer{text-align:center;font-family:'Space Mono',monospace;color:#888;font-size:12px;padding:22px}
+
+@media(max-width:900px){
+  .menu{display:block}.login{display:none}
+  nav{display:none;position:absolute;top:100%;left:0;right:0;background:#0b0b0b;flex-direction:column;gap:0;padding:8px 20px 16px;margin:0}
+  nav.open{display:flex}
+  .poster{min-height:720px}.pcopy{margin-top:130px}.ptitle em{margin-left:-20px}
+  .star{top:196px}.poster-logo{top:100px;width:110px;height:110px}.b3,.b4,.b6{display:none}.pintro{max-width:100%}
+  .detail{grid-template-columns:1fr;gap:22px}.grid{grid-template-columns:repeat(2,1fr)}.keys{display:none}
+  .photo{height:280px;max-height:280px}
+  .info-layout{grid-template-columns:1fr;justify-items:center;text-align:center}
+  .hud3d{display:none}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+:root{--wine:#6b2234}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--wine:#7d2b40}}
+:root[data-theme="dark"]{--wine:#7d2b40}
+.dtitle{font-size:clamp(22px,3vw,32px);margin:0 0 10px;line-height:1.1;display:flex;gap:12px;align-items:center}
+.dtitle b{color:var(--green);font-family:'Space Mono',monospace}
+.wine{display:table;background:var(--wine);color:#fff;font-family:'Space Mono',monospace;font-size:13px;line-height:1.5;padding:5px 12px}
+.fact{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:start;margin-top:20px}
+.yr{background:var(--wine);color:#fff;aspect-ratio:1;display:grid;place-items:center;font-family:'Orbitron',sans-serif;font-weight:700;font-size:22px}
+.meta{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px}
+@media(max-width:900px){.fact{grid-template-columns:90px 1fr}.yr{font-size:16px}.desc,.desc .hl{font-size:16px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <a class="brand" href="#inicio" aria-label="Ir al inicio">
+      <img src="logo-umng.png" alt="Logo UMNG">
+      <span>museo virtual<br>campus umng</span>
+    </a>
+    <button class="menu" id="menuBtn" aria-label="Abrir menú">☰</button>
+    <nav id="nav">
+      <a href="#inicio" data-v="inicio">Inicio</a>
+      <a href="#recorrido" data-v="recorrido">Recorrido</a>
+      <a href="#colecciones" data-v="colecciones">Colecciones</a>
+      <a href="#modelo3d" data-v="modelo3d">Modelo 3D</a>
+      <a href="#informacion" data-v="informacion">Información</a>
+    </nav>
+    <button class="login" id="loginBtn">Iniciar sesión</button>
+  </div>
+</header>
+
+<main>
+  <!-- 1. INICIO -->
+  <section class="view" id="v-inicio">
+    <div class="poster">
+      <div class="blk b1"></div><div class="blk b2"></div><div class="blk b3"></div>
+      <div class="blk b4"></div><div class="blk b5"></div><div class="blk b6"></div>
+      <svg class="wave w1" viewBox="0 0 600 140" preserveAspectRatio="none" aria-hidden="true"><defs><path id="p1" d="M0 40 C120 0 240 90 360 45 S560 5 640 40"/><path id="p2" d="M0 90 C140 60 260 130 400 85 S560 60 640 95"/></defs><text><textPath href="#p1">01010101010101001010101010110101010101010101</textPath></text><text><textPath href="#p2">1010101010010101010101000101010101011010101</textPath></text></svg>
+      <svg class="wave w2" viewBox="0 0 600 300" preserveAspectRatio="none" aria-hidden="true"><defs><path id="p3" d="M0 40 C150 10 250 90 400 50 S560 30 640 60"/><path id="p4" d="M0 100 C150 70 280 150 420 110 S560 90 640 120"/><path id="p5" d="M0 160 C150 130 280 210 420 170 S560 150 640 180"/><path id="p6" d="M0 220 C150 190 280 270 420 230 S560 210 640 240"/></defs><text><textPath href="#p3">0101010101010000010101010111010101010101010101</textPath></text><text><textPath href="#p4">1010101010101001010101010000010101011010101</textPath></text><text><textPath href="#p5">01010101011010010101010101110101010101010101</textPath></text><text><textPath href="#p6">1011010010010101010101011101010100101010101</textPath></text></svg>
+      <div class="star mono" style="color:var(--green)" aria-hidden="true">✱</div>
+      <img src="logo-umng.png" alt="Logo UMNG" class="poster-logo">
+      <div class="pcopy">
+        <h1 class="ptitle disp"><span>Museo Virtual</span><span>de la</span><em>Computación</em></h1>
+        <p class="pintro"><span class="hl">Explora la evolución de la <b>computación</b> y la <b>tecnología</b> a través de una colección de computadores, portátiles, impresoras y más, del Campus UMNG.</span></p>
+        <div class="ctawrap"><a class="cta" href="#recorrido"><span>▶</span> iniciar recorrido</a></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. RECORRIDO -->
+  <section class="view" id="v-recorrido">
+    <div class="room">
+      <div class="frames"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="roomname"><b>✱</b> <span id="deviceName"></span></div>
+      <button class="arrow l" id="prev" aria-label="Pieza anterior">‹</button>
+      <div class="stage">
+        <div class="tip" id="tip"></div>
+        <button class="info" id="infoBtn" aria-label="Ver información de la pieza">i</button>
+        <div class="case" id="caseBox"></div>
+        <div class="ped"></div>
+      </div>
+      <button class="arrow r" id="next" aria-label="Pieza siguiente">›</button>
+      <div class="keys" aria-hidden="true"><b>←</b><b>→</b><span>Moverse</span></div>
+      <div class="dots" id="dots"></div>
+    </div>
+  </section>
+
+  <!-- 3. DETALLE -->
+  <section class="view" id="v-objeto">
+    <button class="back" id="backBtn">← volver</button>
+    <div class="detail">
+      <div class="photo-wrap">
+        <div class="photo" id="dPhoto"></div>
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+      <div>
+        <div id="dInfo"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. COLECCIONES -->
+  <section class="view" id="v-colecciones">
+    <h2 class="title disp">Colecciones</h2>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <!-- 5. MODELO 3D -->
+  <section class="view" id="v-modelo3d">
+    <h2 class="title disp">Escenario 3D Interactivo</h2>
+    <div id="canvas3d-container">
+      <div id="loadingMsg" class="loading-msg">Cargando modelo 3D...</div>
+      <div class="hud3d">
+        <b>W</b><b>A</b><b>S</b><b>D</b> moverse &nbsp; <b>Shift</b> correr<br>
+        <b>Z</b> subir &nbsp; <b>X</b> bajar<br>
+        <b>Q</b> acercar &nbsp; <b>E</b> alejar<br>
+        Arrastra el mouse para mirar
+      </div>
+    </div>
+    <p style="font-family:'Space Mono'; font-size:12px; color:#666; margin-top:10px; text-align:center;">
+      💡 Usa W, A, S, D para caminar, Z/X para subir y bajar, Q y E para zoom, y arrastra el mouse para mirar alrededor.
+    </p>
+  </section>
+
+  <!-- 6. INFORMACION -->
+  <section class="view" id="v-informacion">
+    <h2 class="title disp">Información</h2>
+    <div class="info-layout">
+      <img src="logo-umng.png" alt="Logo UMNG" class="info-logo">
+      <p class="pagetext" style="margin:0;"><span class="hl">El museo de la computación UMNG documenta la trayectoria histórica y técnica de la informática. Este espacio <b>preserva</b> y <b>exhibe</b> hardware, software y documentación clave, facilitando la comprensión de la <b>evolución tecnológica</b> y su impacto socioeconómico.</span></p>
+    </div>
+  </section>
+</main>
+<footer>museo virtual de la computación · campus umng</footer>
+
+<script>
+const OBJ=[
+ {
+   id:'pc',
+   nombre:'APPLE II GS',
+   anio:'1986',
+   epoca:'1986',
+   col:'computadores',
+   sala:'Sala de Computación',
+   img:'apple-iigs.jpg',
+   sub:'La versión más avanzada de Apple II.',
+   desc:'Tenía capacidades gráficas y sonoras avanzadas gracias a una <b>CPU</b> (256 kilobytes de memoria). Incluía una unidad de disco y ranura para cartuchos <b>ROM</b>.'
+ },
+ {
+   id:'ibmpc',
+   nombre:'PRIMER IBM PC',
+   anio:'1981',
+   epoca:'1981',
+   col:'computadores',
+   sala:'Sala de Computación',
+   img:'ibm-pc.jpg',
+   sub:'Venía 16 KB de RAM - una cantidad ínfima en su momento.',
+   desc:'Sentó las bases de la arquitectura de PC que dominaría la industria. Abrió el camino para la compatibilidad de hardware y la explosión del software de terceros.'
+ },
+ {
+   id:'trs80',
+   nombre:'RADIO SHACK TRS-80',
+   anio:'1977',
+   epoca:'1977',
+   col:'computadores',
+   sala:'Sala de Computación',
+   img:'trs80.jpg',
+   sub:'Uno de los primeros sistemas de la computación abierto al público y producción masiva.',
+   desc:'Su sistema de programación operaba en la antigua era <b>BASIC</b> y contaba con un monitor en blanco y negro, conocido como "Trash-80".'
+ },
+ {
+   id:'trs80mod',
+   nombre:'RADIO SHACK TRS-80',
+   anio:'1983',
+   epoca:'1983',
+   col:'computadores',
+   sala:'Sala de Computación',
+   img:'trs80-mod16b.jpg',
+   sub:'Modelo 16B. > Actualización del modelo 16.',
+   desc:'Equipo multiusuario con un sistema operativo más robusto (<b>TRSDOS o XENIX</b>). Utilizado en pequeños negocios.'
+ },
+ {
+   id:'compaq',
+   nombre:'COMPAQ PORTABLE III',
+   anio:'1987',
+   epoca:'1987',
+   col:'computadores',
+   sala:'Sala de Computación',
+   img:'compaq-portable3.jpg',
+   sub:'"transportable" (no un verdadero portátil)',
+   desc:'Un hito como computadora, tenía una pantalla de plasma y alto rendimiento para la época. Popular en el mundo de los negocios.'
+ },
+ {
+   id:'lisa',
+   nombre:'APPLE LISA',
+   anio:'1983',
+   epoca:'1983',
+   col:'computadores',
+   sala:'Sala de Computación',
+   img:'apple-lisa.jpg',
+   sub:'Su alto costo limitó su éxito comercial.',
+   desc:'Una de las primeras computadoras personales en ofrecer una interfaz gráfica (<b>GUI</b>) y ratón, antes del Macintosh.'
+ },
+ {
+   id:'iic',
+   nombre:'APPLE II C',
+   anio:'1984',
+   epoca:'1984',
+   col:'computadores',
+   sala:'Sala de Computación',
+   img:'apple-iic.jpg',
+   sub:'Primer portátil con unidad de disco.',
+   desc:'El primer Apple II portátil es un diseño compacto <b>"todo en uno"</b> con unidad de disquete incorporada. Buscaba atraer a nuevos usuarios al mercado informático.'
+ },
+ {
+   id:'iie',
+   nombre:'APPLE II E',
+   anio:'1983',
+   epoca:'1983',
+   col:'computadores',
+   sala:'Sala de Computación',
+   img:'apple-iie.jpg',
+   sub:'La versión más vendida de Apple II.',
+   desc:'La versión más económica y con 64 KB de RAM. Dominó el mercado por su robustez y gran biblioteca de software.'
+ },
+ {
+   id:'nextcube',
+   nombre:'NEXT CUBE COMPUTER',
+   anio:'1988',
+   epoca:'1988',
+   col:'computadores',
+   sala:'Sala de Computación',
+   img:'next-cube.jpg',
+   sub:'Diseñada por Steve Jobs tras dejar Apple.',
+   desc:'Esta estación de trabajo cúbica usó un sistema operativo <b>NeXTSTEP</b>, influyendo en macOS. Destacó por su elegancia y potencia en instituciones académicas.'
+ },
+ {
+   id:'imacg3',
+   nombre:'PRIMER IMAC',
+   anio:'1998',
+   epoca:'1998',
+   col:'computadores',
+   sala:'Sala de Computación',
+   img:'imac-g3.jpg',
+   sub:'Modelo que resucitó a Apple.',
+   desc:'Diseño translúcido y colorido (<b>Bondi Blue</b>). Eliminó la disquetera a favor del USB y se centró en la conectividad a Internet.'
+ },
+ {
+   id:'powerbook100',
+   nombre:'APPLE MACINTOSH POWERBOOK 100',
+   anio:'1991',
+   epoca:'1991',
+   col:'portatiles',
+   sala:'Sala de Portátiles',
+   img:'apple-powerbook100.jpg',
+   sub:'Pionero en diseño ergonómico portátil.',
+   desc:'Lanzado al mercado en octubre de 1991. Fue uno de los primeros portátiles en colocar el teclado hacia atrás para dejar espacio frontal donde apoyar las muñecas, además de incluir una <b>trackball</b> (bola de seguimiento) centrada.'
+ },
+ {
+   id:'macbookpro13',
+   nombre:'APPLE MACBOOK PRO 13"',
+   anio:'2009-2012',
+   epoca:'2009-2012',
+   col:'portatiles',
+   sala:'Sala de Portátiles',
+   img:'macbook-pro13.jpg',
+   sub:'Diseño Unibody e innovación icónica.',
+   desc:'Este equipo es un Apple MacBook Pro de 13 pulgadas (diseño Unibody), fabricado entre 2009 y 2012. Fue uno de los primeros portátiles de Apple en incorporar un marco de cristal negro brillante de borde a borde, además de introducir un <b>teclado retroiluminado</b> de teclas negras independientes.'
+ },
+ {
+   id:'epson800',
+   nombre:'EPSON STYLUS COLOR 800',
+   anio:'1997',
+   epoca:'1997',
+   col:'impresoras',
+   sala:'Sala de Impresoras',
+   img:'epson-stylus-color800.jpg',
+   sub:'Impresora de inyección de tinta clásica.',
+   desc:'La Epson Stylus Color 800 es una impresora de inyección de tinta clásica lanzada en 1997, muy conocida por ofrecer una <b>alta resolución</b> y calidad fotográfica para su época.'
+ }
+];
+
+const COLS=[
+  ['computadores', 'ibmpc'],
+  ['portatiles', 'powerbook100'],
+  ['impresoras', 'epson800']
+];
+
+const $=s=>document.querySelector(s);
+const pic=o=>o.img?`<img src="${o.img}" alt="${o.nombre}">`:`<div style="display:grid;place-items:center;width:100%;height:100%;font-family:'Space Mono'">📦</div>`;
+let cur=0,sel=0,activeCol='computadores',last='inicio';
+
+/* =====================================================================
+   VISOR 3D · primera persona dentro del escenario
+   Ajustes rápidos (si algo no se siente bien en tu modelo, cambia estos):
+   ===================================================================== */
+const EYE_RATIO   = 0.35;  // altura de la cámara: fracción de la altura total del modelo (0.35 = 35%)
+const SPEED_RATIO = 0.10;  // velocidad al caminar: fracción del tamaño del escenario por segundo
+const RUN_FACTOR  = 2;     // multiplicador al mantener Shift
+const COLLISIONS  = true;  // true = las paredes/objetos del modelo bloquean el paso
+const FOV_MIN = 25, FOV_MAX = 85, FOV_DEFAULT = 65; // límites del zoom (Q/E)
+const VERT_SPEED_RATIO = 0.06; // velocidad al subir/bajar (fracción del tamaño del escenario por segundo)
+const MIN_EYE_RATIO    = 0.12; // altura mínima de la cámara (12% de la altura total → lejos del piso)
+const MAX_EYE_RATIO    = 0.85; // altura máxima de la cámara (85% de la altura total → debajo del techo)
+
+let scene3D, camera3D, renderer3D, is3DInitialized = false;
+let model3D = null, bounds3D = null, moveSpeed = 3, vertSpeed = 1.5, playerRadius = 0.3;
+let yaw = 0, pitch = 0;
+const keys3D = {};
+const clock3D = new THREE.Clock();
+const ray3D = new THREE.Raycaster();
+
+function route(){
+  const h=(location.hash||'#inicio').slice(1);
+  const v=['inicio','recorrido','objeto','colecciones','modelo3d','informacion'].includes(h)?h:'inicio';
+  document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
+  document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===(v==='objeto'?last:v)));
+  if(v!=='objeto')last=v;
+  $('#nav').classList.remove('open');scrollTo(0,0);
+
+  if(v === 'modelo3d') {
+    setTimeout(init3DViewer, 100);
+  }
+}
+addEventListener('hashchange',route);
+
+const is3DActive = () => $('#v-modelo3d').classList.contains('on');
+
+function updateCameraRotation() {
+  camera3D.rotation.set(pitch, yaw, 0, 'YXZ');
+}
+
+// ¿hay una pared/objeto del modelo en esa dirección?
+function blocked(origin, dir, dist) {
+  if (!COLLISIONS || !model3D) return false;
+  ray3D.set(origin, dir);
+  ray3D.far = dist;
+  return ray3D.intersectObject(model3D, true).length > 0;
+}
+
+function movePlayer(dt) {
+  const fwd = (keys3D['w'] ? 1 : 0) - (keys3D['s'] ? 1 : 0);
+  const side = (keys3D['d'] ? 1 : 0) - (keys3D['a'] ? 1 : 0);
+  if (!fwd && !side) return;
+
+  const speed = moveSpeed * (keys3D['shift'] ? RUN_FACTOR : 1);
+  // direcciones sobre el plano horizontal según hacia dónde mira la cámara
+  const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+  const rx = Math.cos(yaw),  rz = -Math.sin(yaw);
+  let dx = fx * fwd + rx * side;
+  let dz = fz * fwd + rz * side;
+  const len = Math.hypot(dx, dz) || 1;
+  dx = dx / len * speed * dt;
+  dz = dz / len * speed * dt;
+
+  const pos = camera3D.position;
+  // Se prueba cada eje por separado para poder "deslizarse" por las paredes
+  if (dx !== 0) {
+    const dirX = new THREE.Vector3(Math.sign(dx), 0, 0);
+    if (!blocked(pos, dirX, Math.abs(dx) + playerRadius)) pos.x += dx;
+  }
+  if (dz !== 0) {
+    const dirZ = new THREE.Vector3(0, 0, Math.sign(dz));
+    if (!blocked(pos, dirZ, Math.abs(dz) + playerRadius)) pos.z += dz;
+  }
+
+  // Límite duro: nunca salir de la caja del escenario
+  if (bounds3D) {
+    pos.x = Math.min(bounds3D.max.x, Math.max(bounds3D.min.x, pos.x));
+    pos.z = Math.min(bounds3D.max.z, Math.max(bounds3D.min.z, pos.z));
+  }
+}
+
+// Subir (Z) y bajar (X) la cámara con límites de altura
+function moveVertical(dt) {
+  const v = (keys3D['z'] ? 1 : 0) - (keys3D['x'] ? 1 : 0);
+  if (!v || !bounds3D) return;
+
+  const pos = camera3D.position;
+  const dy = v * vertSpeed * dt;
+
+  // Colisión: si hay techo o piso del modelo justo arriba/abajo, no se mueve
+  const dirY = new THREE.Vector3(0, Math.sign(dy), 0);
+  if (!blocked(pos, dirY, Math.abs(dy) + playerRadius)) pos.y += dy;
+
+  // Límite duro de altura
+  pos.y = Math.min(bounds3D.max.y, Math.max(bounds3D.min.y, pos.y));
+}
+
+function init3DViewer() {
+  const container = document.getElementById('canvas3d-container');
+  if (!container) return;
+
+  const resize = () => {
+    const w = container.clientWidth, h = container.clientHeight;
+    if (!w || !h || !renderer3D) return;
+    camera3D.aspect = w / h;
+    camera3D.updateProjectionMatrix();
+    renderer3D.setSize(w, h);
+  };
+
+  if (is3DInitialized) { resize(); return; }
+
+  const w = container.clientWidth || 800;
+  const h = container.clientHeight || 560;
+  const loadMsg = document.getElementById('loadingMsg');
+
+  scene3D = new THREE.Scene();
+  scene3D.background = new THREE.Color(0x222222);
+
+  camera3D = new THREE.PerspectiveCamera(FOV_DEFAULT, w / h, 0.01, 5000);
+  camera3D.position.set(0, 1.6, 0);
+  updateCameraRotation();
+
+  renderer3D = new THREE.WebGLRenderer({ antialias: true });
+  renderer3D.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer3D.setSize(w, h);
+  renderer3D.outputEncoding = THREE.sRGBEncoding;
+  container.appendChild(renderer3D.domElement);
+
+  // Luces (interior: luz envolvente + una direccional suave)
+  scene3D.add(new THREE.AmbientLight(0xffffff, 0.8));
+  scene3D.add(new THREE.HemisphereLight(0xffffff, 0x888888, 1.0));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+  dir.position.set(10, 20, 15);
+  scene3D.add(dir);
+
+  /* ---------- Mirar con el mouse (arrastrar) ---------- */
+  let dragging = false, lastX = 0, lastY = 0;
+  const el = renderer3D.domElement;
+  el.addEventListener('pointerdown', e => {
+    dragging = true; lastX = e.clientX; lastY = e.clientY;
+    container.classList.add('dragging');
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const k = 0.003 * (camera3D.fov / FOV_DEFAULT); // más lento con zoom
+    yaw   -= (e.clientX - lastX) * k;
+    pitch -= (e.clientY - lastY) * k;
+    pitch = Math.max(-1.3, Math.min(1.3, pitch));
+    lastX = e.clientX; lastY = e.clientY;
+    updateCameraRotation();
+  });
+  const stopDrag = () => { dragging = false; container.classList.remove('dragging'); };
+  el.addEventListener('pointerup', stopDrag);
+  el.addEventListener('pointercancel', stopDrag);
+
+  /* ---------- Teclado: W A S D, Shift, Q / E, Z / X ---------- */
+  const CONTROL_KEYS = ['w','a','s','d','q','e','z','x','shift'];
+  window.addEventListener('keydown', ev => {
+    if (!is3DActive()) return;
+    const k = ev.key.toLowerCase();
+    if (CONTROL_KEYS.includes(k)) { keys3D[k] = true; ev.preventDefault(); }
+  });
+  window.addEventListener('keyup', ev => {
+    const k = ev.key.toLowerCase();
+    if (CONTROL_KEYS.includes(k)) keys3D[k] = false;
+  });
+  window.addEventListener('blur', () => { for (const k in keys3D) keys3D[k] = false; });
+
+  /* ---------- Cargar el escenario ---------- */
+  const loader = new THREE.GLTFLoader();
+  loader.load(
+    'Museo01.glb',
+    function (gltf) {
+      const model = gltf.scene;
+
+      let meshCount = 0;
+      model.traverse(obj => {
+        if (!obj.isMesh) return;
+        meshCount++;
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        mats.forEach(m => {
+          if (!m) return;
+          if (m.metalness !== undefined && m.metalness > 0.5 && !m.metalnessMap) m.metalness = 0.1;
+          m.side = THREE.DoubleSide; // paredes visibles (y colisionables) desde ambos lados
+          m.needsUpdate = true;
+        });
+      });
+
+      scene3D.add(model);
+      model.updateMatrixWorld(true);
+      model3D = model;
+
+      const box = new THREE.Box3().setFromObject(model);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+
+      console.log('GLB cargado. Meshes:', meshCount, 'Tamaño:', size, 'Centro:', center);
+
+      if (!isFinite(maxDim) || maxDim === 0) {
+        if (loadMsg) loadMsg.innerHTML = 'El modelo cargó pero está vacío (sin geometría). Revisa la exportación.';
+        return;
+      }
+
+      // Parámetros que dependen de la escala del escenario
+      playerRadius = Math.max(0.05, maxDim * 0.01);
+      moveSpeed = maxDim * SPEED_RATIO;
+      vertSpeed = size.y * VERT_SPEED_RATIO;
+      camera3D.near = Math.max(0.01, maxDim / 3000);
+      camera3D.far = maxDim * 20;
+
+      // Límite: la caja del escenario con un pequeño margen interior
+      const margin = playerRadius * 2;
+      bounds3D = {
+        min: new THREE.Vector3(
+          box.min.x + margin,
+          box.min.y + size.y * MIN_EYE_RATIO,   // límite inferior (piso)
+          box.min.z + margin
+        ),
+        max: new THREE.Vector3(
+          box.max.x - margin,
+          box.min.y + size.y * MAX_EYE_RATIO,   // límite superior (techo)
+          box.max.z - margin
+        )
+      };
+
+      // Inicio: en el centro del escenario, a la altura de los ojos
+      camera3D.position.set(center.x, box.min.y + size.y * EYE_RATIO, center.z);
+      camera3D.fov = FOV_DEFAULT;
+      camera3D.updateProjectionMatrix();
+      yaw = 0; pitch = 0;
+      updateCameraRotation();
+
+      if (loadMsg) loadMsg.style.display = 'none';
+    },
+    function (xhr) {
+      if (loadMsg && xhr.total) {
+        loadMsg.innerHTML = 'Cargando modelo 3D... ' + Math.round(xhr.loaded / xhr.total * 100) + '%';
+      }
+    },
+    function (error) {
+      console.error('Error al cargar Museo01.glb:', error);
+      if (loadMsg) loadMsg.innerHTML =
+        'No se pudo cargar "Museo01.glb".<br>Ábrelo con Live Server y verifica que el archivo esté junto al HTML.';
+    }
+  );
+
+  /* ---------- Bucle de render ---------- */
+  (function animate3D() {
+    requestAnimationFrame(animate3D);
+    const dt = Math.min(clock3D.getDelta(), 0.1);
+    if (!is3DActive()) return;
+
+    if (model3D) movePlayer(dt);
+    if (model3D) moveVertical(dt);
+
+    // Zoom con Q (acercar) y E (alejar)
+    const z = (keys3D['e'] ? 1 : 0) - (keys3D['q'] ? 1 : 0);
+    if (z) {
+      camera3D.fov = Math.min(FOV_MAX, Math.max(FOV_MIN, camera3D.fov + z * 45 * dt));
+      camera3D.updateProjectionMatrix();
+    }
+
+    renderer3D.render(scene3D, camera3D);
+  })();
+
+  window.addEventListener('resize', resize);
+  is3DInitialized = true;
+}
+
+function drawRoom(){
+  const o=OBJ[cur];
+  $('#deviceName').textContent=o.nombre.toLowerCase();
+  $('#caseBox').innerHTML=pic(o);
+  $('#tip').innerHTML=`${o.nombre}<br>${o.epoca}<br><a href="#objeto" id="verFicha">ver ficha →</a>`;
+  $('#tip').classList.remove('on');
+  $('#dots').innerHTML=OBJ.map((_,i)=>`<i class="${i===cur?'on':''}"></i>`).join('');
+  $('#verFicha').onclick=()=>{
+    sel=cur;
+    drawDetail();
+  };
+}
+
+const go=d=>{
+  cur=(cur+d+OBJ.length)%OBJ.length;
+  drawRoom();
+};
+
+$('#prev').onclick=()=>go(-1);
+$('#next').onclick=()=>go(1);
+$('#infoBtn').onclick=()=>$('#tip').classList.toggle('on');
+
+addEventListener('keydown',e=>{
+  if(!$('#v-recorrido').classList.contains('on'))return;
+  const k=e.key.toLowerCase();
+  if(k==='arrowleft')go(-1);
+  if(k==='arrowright')go(1);
+});
+
+function drawDetail(){
+  const o=OBJ[sel];
+  $('#dPhoto').innerHTML=pic(o);
+  $('#dInfo').innerHTML=`<h2 class="dtitle disp"><b>✱</b>${o.nombre}</h2>
+    <span class="wine">//.${o.sub}*</span>
+    <div class="fact"><div class="yr">${o.anio}</div><p class="desc"><span class="hl">${o.desc}</span></p></div>
+    <div class="meta"><span class="tag">colección: ${o.col}</span></div>`;
+
+  const filtered=OBJ.filter(x=>x.col===o.col);
+  $('#thumbs').innerHTML=filtered.map((p)=>{
+    const globalIdx=OBJ.findIndex(x=>x.id===p.id);
+    return `<button class="${globalIdx===sel?'on':''}" data-i="${globalIdx}" aria-label="${p.nombre}">${pic(p)}</button>`;
+  }).join('');
+
+  $('#thumbs').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    sel=+b.dataset.i;
+    drawDetail();
+  });
+}
+
+$('#backBtn').onclick=()=>{location.hash='#'+last};
+
+$('#grid').innerHTML=COLS.map(([n,id])=>{
+  const o=OBJ.find(x=>x.col===n);
+  return `<a class="col" href="#objeto" data-col="${n}" data-id="${o.id}"><div class="img">${pic(o)}</div><div class="lbl"><span>${n}</span><span>→</span></div></a>`;
+}).join('');
+
+$('#grid').querySelectorAll('.col').forEach(a=>a.onclick=()=>{
+  const colName=a.dataset.col;
+  activeCol=colName;
+  const filtered=OBJ.filter(x=>x.col===colName);
+  sel=OBJ.findIndex(x=>x.id===filtered[0].id);
+  drawDetail();
+});
+
+$('#menuBtn').onclick=()=>$('#nav').classList.toggle('open');
+$('#loginBtn').onclick=e=>{e.currentTarget.textContent='✱ perfil'};
+
+drawRoom();drawDetail();route();
+</script>
+</body>
+</html>
